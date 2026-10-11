@@ -1,0 +1,13 @@
+.venv/
+data/
+.env
+.ipynb_checkpoints/
+__pycache__/
+*.bak
+*.bak*
+.DS_Store
+Thumbs.db
+
+# черновики: проверка на 100 целевых (H1c)
+07_h1c_all_positions_run.ipynb
+08_h1c_all_positions_analysis.ipynb

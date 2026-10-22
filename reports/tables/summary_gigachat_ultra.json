@@ -1,0 +1,163 @@
+{
+  "model_key": "gigachat_ultra",
+  "h1_singles": {
+    "n": 150,
+    "accuracy": 0.86,
+    "precision": 0.8375,
+    "recall": 0.8933333333333333,
+    "f1": 0.8645161290322579,
+    "fpr": 0.17333333333333334,
+    "fnr": 0.10666666666666667,
+    "share_toxic_pred_all": 0.5427272727272727,
+    "share_toxic_gold_all": 0.4372988882589065
+  },
+  "h1_effect": [
+    {
+      "subset": "all",
+      "n_targets": 300,
+      "effect_pp": -9.0,
+      "ci_low": -11.555555555555555,
+      "ci_high": -6.333333333333333,
+      "ci_excludes_0": true,
+      "p_share_lo": 0.5777777777777777,
+      "p_share_hi": 0.4877777777777777
+    },
+    {
+      "subset": "clear",
+      "n_targets": 150,
+      "effect_pp": -6.888888888888887,
+      "ci_low": -10.666666666666666,
+      "ci_high": -3.555555555555556,
+      "ci_excludes_0": true,
+      "p_share_lo": 0.548888888888889,
+      "p_share_hi": 0.48
+    },
+    {
+      "subset": "ambiguous",
+      "n_targets": 150,
+      "effect_pp": -11.11111111111111,
+      "ci_low": -15.11111111111111,
+      "ci_high": -7.555555555555554,
+      "ci_excludes_0": true,
+      "p_share_lo": 0.6066666666666667,
+      "p_share_hi": 0.4955555555555555
+    },
+    {
+      "subset": "clear_toxic",
+      "n_targets": 75,
+      "effect_pp": -8.444444444444445,
+      "ci_low": -14.22222222222222,
+      "ci_high": -3.1111111111111107,
+      "ci_excludes_0": true,
+      "p_share_lo": 0.8799999999999998,
+      "p_share_hi": 0.7955555555555556
+    },
+    {
+      "subset": "clear_nontoxic",
+      "n_targets": 75,
+      "effect_pp": -5.333333333333332,
+      "ci_low": -10.222222222222221,
+      "ci_high": -1.333333333333333,
+      "ci_excludes_0": true,
+      "p_share_lo": 0.21777777777777776,
+      "p_share_hi": 0.16444444444444445
+    }
+  ],
+  "h1_gee_logit": {
+    "family": "logit",
+    "coef": -0.3084528600000851,
+    "se": 0.0519688740665901,
+    "ci_low": -0.4103099814876993,
+    "ci_high": -0.20659573851247087,
+    "p_value": 2.9323982015097748e-09,
+    "odds_ratio_0_to_100": 0.7345825796057358,
+    "n_obs": 4500,
+    "n_clusters": 300
+  },
+  "h1_gee_linear": {
+    "family": "linear",
+    "coef": -0.07688888888888891,
+    "se": 0.012921312983520892,
+    "ci_low": -0.10221419696955965,
+    "ci_high": -0.05156358080821817,
+    "p_value": 2.6724671637737706e-09,
+    "odds_ratio_0_to_100": null,
+    "n_obs": 4500,
+    "n_clusters": 300
+  },
+  "h1_mcnemar": {
+    "toxic_at_lo_only": 35,
+    "toxic_at_hi_only": 3,
+    "p_value": 6.677873898297548e-08,
+    "n": 300
+  },
+  "h2_ambiguous_vs_clear": {
+    "effect_ambiguous": -11.11111111111111,
+    "effect_clear": -6.888888888888887,
+    "diff": -4.222222222222224,
+    "ci_low": -9.333333333333332,
+    "ci_high": 1.1111111111111107,
+    "ci_excludes_0": false
+  },
+  "h1c_effect_pos1_vs_rest": {
+    "pos1": {
+      "n_targets": 300,
+      "effect_pp": -9.0,
+      "ci_low": -12.666666666666666,
+      "ci_high": -5.333333333333333,
+      "ci_excludes_0": true,
+      "p_share_lo": 0.6833333333333333,
+      "p_share_hi": 0.5933333333333334
+    },
+    "pos2_9": {
+      "n_targets": 300,
+      "effect_pp": -9.583333333333334,
+      "ci_low": -12.791666666666666,
+      "ci_high": -6.375,
+      "ci_excludes_0": true,
+      "p_share_lo": 0.545,
+      "p_share_hi": 0.44916666666666666
+    }
+  },
+  "h1c_position_drift_at_0pct": {
+    "level": 0.0,
+    "slope_logit_per_pos": -0.0883340936448576,
+    "ci_low": -0.11150636590372837,
+    "ci_high": -0.06516182138598683,
+    "p_value": 7.928550947955982e-14,
+    "n_obs": 2700
+  },
+  "h1c_position_drift_at_100pct": {
+    "level": 1.0,
+    "slope_logit_per_pos": -0.053534075770534546,
+    "ci_low": -0.07202150323952104,
+    "ci_high": -0.03504664830154805,
+    "p_value": 1.3830748702193168e-08,
+    "n_obs": 2700
+  },
+  "h1c_slope_x_position": {
+    "coef": 0.03477945917242195,
+    "se": 0.013843266239809563,
+    "p_value": 0.011992199457753476,
+    "n_obs": 5400
+  },
+  "noise_batch": {
+    "kind": "batch",
+    "n_items": 300,
+    "share_changed": 0.023333333333333334,
+    "mean_kappa_vs_first": 0.9526899161935659
+  },
+  "noise_single": {
+    "kind": "single",
+    "n_items": 300,
+    "share_changed": 0.02,
+    "mean_kappa_vs_first": 0.9588590235874931
+  },
+  "uncertainty_mean_u": 0.587,
+  "temperature_check": {
+    "n": 300,
+    "share_toxic_t0": 0.58,
+    "share_toxic_t1": 0.587,
+    "flip_rate": 0.02
+  }
+}

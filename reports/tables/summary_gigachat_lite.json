@@ -1,0 +1,163 @@
+{
+  "model_key": "gigachat_lite",
+  "h1_singles": {
+    "n": 150,
+    "accuracy": 0.8,
+    "precision": 0.7586206896551724,
+    "recall": 0.88,
+    "f1": 0.8148148148148148,
+    "fpr": 0.28,
+    "fnr": 0.12,
+    "share_toxic_pred_all": 0.5318181818181819,
+    "share_toxic_gold_all": 0.4372988882589065
+  },
+  "h1_effect": [
+    {
+      "subset": "all",
+      "n_targets": 300,
+      "effect_pp": -9.0,
+      "ci_low": -11.666666666666666,
+      "ci_high": -6.444444444444444,
+      "ci_excludes_0": true,
+      "p_share_lo": 0.63,
+      "p_share_hi": 0.54
+    },
+    {
+      "subset": "clear",
+      "n_targets": 150,
+      "effect_pp": -7.777777777777777,
+      "ci_low": -11.111111111111112,
+      "ci_high": -4.444444444444444,
+      "ci_excludes_0": true,
+      "p_share_lo": 0.5955555555555554,
+      "p_share_hi": 0.5177777777777777
+    },
+    {
+      "subset": "ambiguous",
+      "n_targets": 150,
+      "effect_pp": -10.22222222222222,
+      "ci_low": -14.22222222222222,
+      "ci_high": -6.444444444444444,
+      "ci_excludes_0": true,
+      "p_share_lo": 0.6644444444444444,
+      "p_share_hi": 0.5622222222222223
+    },
+    {
+      "subset": "clear_toxic",
+      "n_targets": 75,
+      "effect_pp": -6.666666666666667,
+      "ci_low": -11.111111111111109,
+      "ci_high": -2.6666666666666665,
+      "ci_excludes_0": true,
+      "p_share_lo": 0.8355555555555554,
+      "p_share_hi": 0.7688888888888888
+    },
+    {
+      "subset": "clear_nontoxic",
+      "n_targets": 75,
+      "effect_pp": -8.888888888888888,
+      "ci_low": -14.22222222222222,
+      "ci_high": -3.555555555555556,
+      "ci_excludes_0": true,
+      "p_share_lo": 0.3555555555555555,
+      "p_share_hi": 0.2666666666666667
+    }
+  ],
+  "h1_gee_logit": {
+    "family": "logit",
+    "coef": -0.37714013683268127,
+    "se": 0.051510384604126803,
+    "ci_low": -0.4780986354865763,
+    "ci_high": -0.27618163817878627,
+    "p_value": 2.4497118082208543e-13,
+    "odds_ratio_0_to_100": 0.6858199585247483,
+    "n_obs": 4498,
+    "n_clusters": 300
+  },
+  "h1_gee_linear": {
+    "family": "linear",
+    "coef": -0.0915813284931485,
+    "se": 0.012343907825874686,
+    "ci_low": -0.115774943260345,
+    "ci_high": -0.067387713725952,
+    "p_value": 1.1787257182387313e-13,
+    "odds_ratio_0_to_100": null,
+    "n_obs": 4498,
+    "n_clusters": 300
+  },
+  "h1_mcnemar": {
+    "toxic_at_lo_only": 38,
+    "toxic_at_hi_only": 5,
+    "p_value": 2.4995097192004323e-07,
+    "n": 300
+  },
+  "h2_ambiguous_vs_clear": {
+    "effect_ambiguous": -10.22222222222222,
+    "effect_clear": -7.777777777777777,
+    "diff": -2.444444444444443,
+    "ci_low": -7.333333333333334,
+    "ci_high": 2.6666666666666687,
+    "ci_excludes_0": false
+  },
+  "h1c_effect_pos1_vs_rest": {
+    "pos1": {
+      "n_targets": 299,
+      "effect_pp": -1.3377926421404682,
+      "ci_low": -4.3478260869565215,
+      "ci_high": 1.6722408026755853,
+      "ci_excludes_0": false,
+      "p_share_lo": 0.6588628762541806,
+      "p_share_hi": 0.6454849498327759
+    },
+    "pos2_9": {
+      "n_targets": 300,
+      "effect_pp": -12.708333333333334,
+      "ci_low": -15.958333333333334,
+      "ci_high": -9.458333333333334,
+      "ci_excludes_0": true,
+      "p_share_lo": 0.5925,
+      "p_share_hi": 0.46541666666666665
+    }
+  },
+  "h1c_position_drift_at_0pct": {
+    "level": 0.0,
+    "slope_logit_per_pos": -0.05008962272718419,
+    "ci_low": -0.07265406715210254,
+    "ci_high": -0.02752517830226584,
+    "p_value": 1.3562879913880687e-05,
+    "n_obs": 2700
+  },
+  "h1c_position_drift_at_100pct": {
+    "level": 1.0,
+    "slope_logit_per_pos": -0.08207003220518434,
+    "ci_low": -0.10272813765412676,
+    "ci_high": -0.06141192675624192,
+    "p_value": 6.889173171576395e-15,
+    "n_obs": 2699
+  },
+  "h1c_slope_x_position": {
+    "coef": -0.03198757084886909,
+    "se": 0.013448184648735493,
+    "p_value": 0.017379508028910962,
+    "n_obs": 5399
+  },
+  "noise_batch": {
+    "kind": "batch",
+    "n_items": 300,
+    "share_changed": 0.01,
+    "mean_kappa_vs_first": 0.9896255994098119
+  },
+  "noise_single": {
+    "kind": "single",
+    "n_items": 300,
+    "share_changed": 0.0033333333333333335,
+    "mean_kappa_vs_first": 0.996559317368566
+  },
+  "uncertainty_mean_u": 0.5943333333333334,
+  "temperature_check": {
+    "n": 300,
+    "share_toxic_t0": 0.59,
+    "share_toxic_t1": 0.5943333333333334,
+    "flip_rate": 0.01
+  }
+}

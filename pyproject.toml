@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ctxbias"
+version = "1.0.0"
+description = "Влияние соседних текстов в батче на классификацию токсичности большой языковой моделью"
+requires-python = ">=3.10"
+readme = "README.md"
+dependencies = ["numpy", "pandas", "pyarrow", "scipy", "statsmodels", "tqdm", "tenacity", "python-dotenv", "tiktoken"]
+
+[project.optional-dependencies]
+providers = ["openai", "anthropic", "gigachat", "kagglehub"]
+dev = ["pytest", "matplotlib"]
+
+[project.scripts]
+ctxbias = "ctxbias.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["ctxbias*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

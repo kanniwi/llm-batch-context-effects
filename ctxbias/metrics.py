@@ -351,3 +351,28 @@ def effect_pos1_vs_rest(df: pd.DataFrame) -> dict:
         if len(e):
             out[name] = e.iloc[0].drop("subset").to_dict()
     return out
+
+
+def classification_by_level_stratum(df: pd.DataFrame) -> pd.DataFrame:
+    """Качество по уровню токсичности соседей и по трём группам целевых (clear_toxic, clear_nontoxic, ambiguous).
+
+    Строка «без соседей» — одиночные запросы. Внутри clear_toxic есть только положительные эталонные метки (определены recall/FNR),
+    внутри clear_nontoxic — только отрицательные (FPR); precision и F1 внутри одной группы не определены. Для ambiguous эталон —
+    условная метка (доля разметчиков ≥ 0,5 при доле 0,4–0,6), то есть почти подбрасывание монеты: показатели нужны как справочные."""
+    d = _valid(df)
+    d = d[d["sample"] == C.SAMPLE_BASE]
+    rows = []
+    for kind, lvl_col in (("single", None), ("batch", "prop_toxic")):
+        g0 = d[d["kind"] == kind]
+        levels = [None] if lvl_col is None else sorted(g0[lvl_col].unique())
+        for lvl in levels:
+            g1 = g0 if lvl is None else g0[g0[lvl_col] == lvl]
+            for st in ("clear_toxic", "clear_nontoxic", "ambiguous", "clear"):
+                g = g1[g1["group"] == "clear"] if st == "clear" else g1[g1["stratum"] == st]
+                if not len(g):
+                    continue
+                r = dict(level=("без соседей" if lvl is None else lvl), group=st, n=len(g), share_toxic_pred=g["y"].mean(),
+                         share_toxic_annotators=g["share_toxic"].mean())
+                r.update({k: v for k, v in confusion_metrics(g["y"], g["gold"]).items() if k != "n"})
+                rows.append(r)
+    return pd.DataFrame(rows)

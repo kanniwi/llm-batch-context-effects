@@ -41,6 +41,7 @@ def build(model_key: str, ctx: Context | None = None) -> dict:
         eff = M.effect(b); save(eff, "h1_effect"); S["h1_effect"] = eff.to_dict("records")
         save(M.dose_response(b), "h1_dose_response")
         save(M.classification_by_level(b), "h1_classification_by_level")
+        save(M.classification_by_level_stratum(h1), "h1_classification_by_level_stratum")
         save(M.unparsed_rates(b), "h1_unparsed")
         S["h1_gee_logit"] = M.gee_level(b, "logit"); S["h1_gee_linear"] = M.gee_level(b, "linear")
         S["h1_mcnemar"] = M.mcnemar_exact(b); S["h2_ambiguous_vs_clear"] = M.h2_ambiguous_vs_clear(b)
@@ -110,3 +111,42 @@ def compare(models=MODEL_ORDER) -> pd.DataFrame:
     df = pd.DataFrame(rows)
     df.to_csv(C.TABLE_DIR / "comparison.csv", index=False, encoding="utf-8")
     return df
+
+
+def classification_tables(models=MODEL_ORDER) -> str:
+    """Пишет docs/classification_tables.md: качество по уровням и по трём группам целевых для всех моделей."""
+    names = {"gigachat_lite": "GigaChat-2 (Lite)", "gigachat_ultra": "GigaChat-3 Ultra", "deepseek": "DeepSeek",
+             "openai": "GPT-5.6 terra", "claude": "Claude Sonnet 5.5"}
+    f = lambda v: "—" if pd.isna(v) else f"{v:.2f}"
+    out = ["# Качество классификации по уровню токсичности соседей и по группам целевых\n",
+           "Источник: основной эксперимент `h1` (300 целевых, ответы при запрошенной T=0), таблицы `reports/tables/<модель>_h1_classification_by_level_stratum.csv`.\n",
+           "Определения: accuracy — доля верных ответов; F1 — по классу TOXIC; FPR — доля нетоксичных целевых, названных токсичными; "
+           "FNR — доля токсичных целевых, названных нетоксичными. «Без соседей» — одиночный запрос. "
+           "Уровень = доля токсичных среди 8 соседей.\n",
+           "Группы: **clear (все явные)** — 75 токсичных + 75 нетоксичных, для них считаются все показатели. **clear_toxic** (только токсичные: определены accuracy = 1 − FNR и FNR), "
+           "**clear_nontoxic** (только нетоксичные: accuracy = 1 − FPR и FPR). **ambiguous** (доля разметчиков 0,4–0,6): эталон условный "
+           "(доля ≥ 0,5), по сути близкий к подбрасыванию монеты, показатели справочные.\n"]
+    for mk in models:
+        p = C.TABLE_DIR / f"{mk}_h1_classification_by_level_stratum.csv"
+        if not p.exists():
+            continue
+        d = pd.read_csv(p)
+        out.append(f"\n## {names.get(mk, mk)}\n")
+        for st, title in (("clear", "Явные целевые (clear), 150"), ("clear_toxic", "Явно токсичные (clear_toxic), 75"),
+                          ("clear_nontoxic", "Явно нетоксичные (clear_nontoxic), 75"), ("ambiguous", "Спорные (ambiguous), 150, условный эталон")):
+            g = d[d["group"] == st]
+            if not len(g):
+                continue
+            cols = {"clear": ("accuracy", "f1", "fpr", "fnr"), "clear_toxic": ("accuracy", "fnr"),
+                    "clear_nontoxic": ("accuracy", "fpr"), "ambiguous": ("accuracy", "f1", "fpr", "fnr")}[st]
+            hdr = {"accuracy": "accuracy", "f1": "F1", "fpr": "FPR", "fnr": "FNR"}
+            out.append(f"\n**{title}**\n")
+            out.append("| Доля токсичных соседей | доля TOXIC у модели | " + " | ".join(hdr[c] for c in cols) + " |")
+            out.append("|---|---|" + "---|" * len(cols))
+            for r in g.itertuples():
+                lvl = r.level if r.level == "без соседей" else f"{float(r.level):.0%}"
+                out.append(f"| {lvl} | {f(r.share_toxic_pred)} | " + " | ".join(f(getattr(r, c)) for c in cols) + " |")
+    text = "\n".join(out) + "\n"
+    (C.ROOT / "docs").mkdir(exist_ok=True)
+    (C.ROOT / "docs" / "classification_tables.md").write_text(text, encoding="utf-8")
+    return text

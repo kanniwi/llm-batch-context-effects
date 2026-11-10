@@ -178,10 +178,13 @@ def _call_mock(spec, system, user, temperature, max_tokens):
     """Детерминированная имитация модели для автотестов (токсичность = наличие слова TOXWORD)."""
     import math
     texts = re.findall(r"^\[(\d+)\] (.*)$", user, flags=re.M)
+    target = re.search(r"Answer only for comment \[(\d+)\]\.$", user)
     n = len(texts)
     share_tox = sum("TOXWORD" in t for _, t in texts) / max(n, 1)
     lines, tokens = [], []
     for k, t in texts:
+        if target and k != target[1]:
+            continue
         rnd = random.Random(hashlib.md5(t.encode()).hexdigest())
         base = 2.5 if "TOXWORD" in t else -2.5
         z = base + rnd.gauss(0, 1.5) + (1.2 * (share_tox - 0.5) if n > 1 else 0)
@@ -192,7 +195,7 @@ def _call_mock(spec, system, user, temperature, max_tokens):
                    (" " + lab[:3], [(" TOX", math.log(max(p, 1e-9))), (" NOT", math.log(max(1 - p, 1e-9)))]),
                    (lab[3:], [])]
     return dict(text="\n".join(lines), tokens=tokens, finish_reason="stop", served_model="mock",
-                usage=dict(input=len(user) // 4 + 250, output=6 * n))
+                usage=dict(input=len(user) // 4 + 250, output=6 * len(lines)))
 
 
 _CALLERS = {"openai": _call_openai_compatible, "deepseek": _call_openai_compatible,

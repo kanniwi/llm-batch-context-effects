@@ -75,15 +75,11 @@ def main(argv=None) -> int:
     samples = tuple(a.samples) if getattr(a, "samples", None) else None
     ctx = _ctx()
     if a.cmd == "budget":
-        total_new = 0
+        pending = set()
         for e in (a.experiments or EXPERIMENTS):
-            if e == "h3" and ctx.neutral is None:
-                print("h3: нужен пул нейтральных соседей (ещё не построен)")
-                continue
-            r = runner.count_requests(e, a.model, ctx, samples)
-            total_new += r["remaining"]
+            r = runner.count_requests(e, a.model, ctx, samples, pending=pending)
             print(f"{e:12s} всего {r['total']:6d}  в кэше {r['cached']:6d}  осталось {r['remaining']:6d}")
-        print(f"итого новых запросов: {total_new}")
+        print(f"итого уникальных новых запросов: {len(pending)}")
         return 0
     if a.cmd == "run":
         df = runner.run(a.experiment, a.model, samples, ctx)

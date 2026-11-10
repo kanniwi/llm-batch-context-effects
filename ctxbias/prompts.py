@@ -75,49 +75,28 @@ def p_toxic_from_logprobs(tokens, n: int):
 
 
 # ---------------------------------------------------------------------------------------------
-# H3: условия подачи (ЧЕРНОВИК — состав условий согласовать с преподавателем)
+# H3: целевой комментарий и предъявленные метки соседей
 # ---------------------------------------------------------------------------------------------
-H3_CONDITIONS = ("standard", "target_only", "labels_true", "labels_flipped", "labels_only")
-
-_DEF = ("You are a content moderator. A comment is TOXIC if it is rude, disrespectful, or unreasonable "
-        "and likely to make someone leave a discussion. Otherwise it is NOT_TOXIC.\n")
-SYSTEM_H3_TARGET = (_DEF +
-                    "You will receive numbered comments. Judge ONLY the comment you are asked about, "
-                    "independently and based on its own content.\n"
-                    "Reply with exactly one line in the form `<number>: TOXIC` or `<number>: NOT_TOXIC`. "
-                    "Do not write anything else.")
-SYSTEM_H3_LABELED = (_DEF +
-                     "You will receive numbered comments. Some of them already carry a label from another moderator, "
-                     "marked `Label:`. Judge ONLY the comment you are asked about, independently and based on its own content.\n"
-                     "Reply with exactly one line in the form `<number>: TOXIC` or `<number>: NOT_TOXIC`. "
-                     "Do not write anything else.")
-MASK = "[text hidden]"
+SYSTEM_H3 = SYSTEM["en"].split("\n", 1)[0] + (
+    "\nYou will receive numbered comments. Some neighbors may have a field called Supplied label."
+    " Classify only the comment marked Target comment, based on its own content."
+    " Reply with exactly one line in the form `<number>: TOXIC` or `<number>: NOT_TOXIC`."
+)
 
 
-def build_h3_prompt(condition: str, texts: list[str], gold: list[int | None], target_pos: int) -> tuple[str, str]:
-    """Возвращает (system, user). gold[i] — человеческая разметка i-го текста (для целевого игнорируется).
-
-    standard       — как в основном эксперименте: модель размечает все тексты;
-    target_only    — все тексты показаны, метку просим только у целевого (своих меток соседей модель не порождает);
-    labels_true    — у соседей указаны верные метки (из разметки людей), метку просим у целевого;
-    labels_flipped — у соседей указаны инвертированные метки;
-    labels_only    — тексты соседей скрыты, указаны только их верные метки."""
-    n = len(texts)
-    if condition == "standard":
-        return SYSTEM["en"], build_user_prompt(texts)
-    lab = lambda g: "TOXIC" if g == 1 else "NOT_TOXIC"
+def build_h3_prompt(texts: list[str], target_pos: int, supplied_label: int | None) -> str:
     lines = []
-    for i, (t, g) in enumerate(zip(texts, gold), start=1):
-        if i == target_pos or condition == "target_only":
-            lines.append(f"[{i}] {t}")
-        elif condition == "labels_true":
-            lines.append(f"[{i}] {t}\n    Label: {lab(g)}")
-        elif condition == "labels_flipped":
-            lines.append(f"[{i}] {t}\n    Label: {lab(1 - g)}")
-        elif condition == "labels_only":
-            lines.append(f"[{i}] {MASK}\n    Label: {lab(g)}")
-        else:
-            raise ValueError(f"неизвестное условие H3: {condition}")
-    system = SYSTEM_H3_TARGET if condition == "target_only" else SYSTEM_H3_LABELED
-    user = "Comments:\n\n" + "\n".join(lines) + f"\n\nAnswer only for comment [{target_pos}]."
-    return system, user
+    for i, text in enumerate(texts, start=1):
+        role = "Target comment" if i == target_pos else "Comment"
+        lines.append(f"[{i}] {role}: {text}")
+        if i != target_pos and supplied_label is not None:
+            label = "TOXIC" if supplied_label else "NOT_TOXIC"
+            lines.append(f"    Supplied label: {label}")
+    return "Comments:\n\n" + "\n".join(lines) + f"\n\nAnswer only for comment [{target_pos}]."
+
+
+def parse_h3_label(text: str, position: int) -> int | None:
+    match = re.fullmatch(r"\s*(\d+):\s*(NOT_TOXIC|TOXIC)\s*", text or "")
+    if match and int(match[1]) == position:
+        return int(match[2] == "TOXIC")
+    return None

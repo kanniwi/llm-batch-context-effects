@@ -1,4 +1,4 @@
-"""Графики для статьи (подписи на русском). Читают таблицы из reports/tables (после `python -m ctxbias report`)."""
+"""Графики для статьи. Читают таблицы из reports/tables (после `python -m ctxbias report`)."""
 from __future__ import annotations
 
 import matplotlib
@@ -115,3 +115,57 @@ def compare_positions(models=("gigachat_lite", "gigachat_ultra", "deepseek", "op
     ax.legend(frameon=False)
     fig.tight_layout()
     return _save(fig, "comparison_position")
+
+
+def compare_h3(models=tuple(_NAMES)):
+    """Основной контраст H3 и направленные эффекты на позициях 1 и 9."""
+    tables = {}
+    for model in models:
+        table = _read(model, "h3_effects")
+        if table is not None:
+            tables[model] = table.set_index(["scope", "contrast"])
+    if not tables:
+        return None
+
+    primary = pd.DataFrame({
+        model: table.loc[("all", "abs_labels_minus_abs_texts")]
+        for model, table in tables.items()
+    }).T.dropna(subset=["effect_pp"])
+    if primary.empty:
+        return None
+
+    fig, (ax_main, ax_first, ax_last) = plt.subplots(
+        1, 3, figsize=(12, 4), sharey=True,
+        gridspec_kw={"width_ratios": (1.15, 1, 1)}, layout="constrained",
+    )
+    ax_last.sharex(ax_first)
+    y = list(range(len(primary)))
+
+    def plot_interval(ax, row, slot, *, color, marker, sign=1, label=None):
+        bounds = sorted([sign * row["ci_low"], sign * row["ci_high"]])
+        ax.hlines(slot, *bounds, color=color, lw=1.6)
+        ax.plot(bounds, [slot, slot], "|", color=color, markersize=6)
+        ax.plot(sign * row["effect_pp"], slot, marker, color=color, markersize=5, label=label)
+
+    for slot, (model, row) in enumerate(primary.iterrows()):
+        plot_interval(ax_main, row, slot, color="#334155", marker="o", sign=-1)
+        for ax, scope in ((ax_first, "pos1"), (ax_last, "pos9")):
+            for contrast, offset, color, marker, label in (
+                ("texts", -0.12, "#0072B2", "o", "Замена текстов"),
+                ("labels", 0.12, "#D55E00", "s", "Смена меток"),
+            ):
+                plot_interval(ax, tables[model].loc[(scope, contrast)], slot + offset,
+                              color=color, marker=marker, label=label if slot == 0 else None)
+
+    for ax in (ax_main, ax_first, ax_last):
+        ax.axvline(0, color="grey", lw=1, linestyle="--", zorder=0)
+        ax.grid(axis="x", alpha=0.18)
+        ax.tick_params(axis="y", length=0)
+    ax_main.set_yticks(y, [f"{_NAMES.get(m, m)} (n={int(n)})" for m, n in primary["n_targets"].items()])
+    ax_main.set_ylim(len(primary) - 0.6, -0.6)
+    ax_main.set(title="A. Какой фактор сильнее", xlabel="|Эффект текстов| − |эффект меток|, п.п.")
+    ax_first.set(title="B. Позиция 1", xlabel="Изменение доли TOXIC, п.п.")
+    ax_last.set(title="Позиция 9", xlabel="Изменение доли TOXIC, п.п.")
+    handles, labels = ax_first.get_legend_handles_labels()
+    fig.legend(handles, labels, frameon=False, loc="outside lower center", ncol=2)
+    return _save(fig, "comparison_h3")

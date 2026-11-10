@@ -65,22 +65,22 @@
   ],
   "h1_gee_logit": {
     "family": "logit",
-    "coef": -0.37714013683268127,
-    "se": 0.051510384604126803,
-    "ci_low": -0.4780986354865763,
-    "ci_high": -0.27618163817878627,
-    "p_value": 2.4497118082208543e-13,
-    "odds_ratio_0_to_100": 0.6858199585247483,
+    "coef": -0.3771401368326816,
+    "se": 0.051510384604126984,
+    "ci_low": -0.478098635486577,
+    "ci_high": -0.2761816381787862,
+    "p_value": 2.4497118082212184e-13,
+    "odds_ratio_0_to_100": 0.6858199585247481,
     "n_obs": 4498,
     "n_clusters": 300
   },
   "h1_gee_linear": {
     "family": "linear",
     "coef": -0.0915813284931485,
-    "se": 0.012343907825874686,
-    "ci_low": -0.115774943260345,
-    "ci_high": -0.067387713725952,
-    "p_value": 1.1787257182387313e-13,
+    "se": 0.012343907825874726,
+    "ci_low": -0.11577494326034508,
+    "ci_high": -0.06738771372595191,
+    "p_value": 1.1787257182389439e-13,
     "odds_ratio_0_to_100": null,
     "n_obs": 4498,
     "n_clusters": 300
@@ -129,16 +129,16 @@
   },
   "h1c_position_drift_at_100pct": {
     "level": 1.0,
-    "slope_logit_per_pos": -0.08207003220518434,
-    "ci_low": -0.10272813765412676,
-    "ci_high": -0.06141192675624192,
-    "p_value": 6.889173171576395e-15,
+    "slope_logit_per_pos": -0.0820700322051843,
+    "ci_low": -0.10272813765412675,
+    "ci_high": -0.06141192675624185,
+    "p_value": 6.8891731715772155e-15,
     "n_obs": 2699
   },
   "h1c_slope_x_position": {
-    "coef": -0.03198757084886909,
-    "se": 0.013448184648735493,
-    "p_value": 0.017379508028910962,
+    "coef": -0.03198757084886907,
+    "se": 0.013448184648735383,
+    "p_value": 0.017379508028910137,
     "n_obs": 5399
   },
   "noise_batch": {
@@ -159,5 +159,27 @@
     "share_toxic_t0": 0.59,
     "share_toxic_t1": 0.5943333333333334,
     "flip_rate": 0.01
+  },
+  "h3_primary": {
+    "scope": "all",
+    "contrast": "abs_labels_minus_abs_texts",
+    "n_targets": 300,
+    "n_observed_targets": 300,
+    "effect_pp": -14.499999999999998,
+    "ci_low": -17.5,
+    "ci_high": -11.5
+  },
+  "h3_pilot_primary": {
+    "scope": "all",
+    "contrast": "abs_labels_minus_abs_texts",
+    "n_targets": 30,
+    "n_observed_targets": 30,
+    "effect_pp": -13.333333333333334,
+    "ci_low": -21.666666666666668,
+    "ci_high": -6.666666666666665
+  },
+  "h3_pilot_label_checks": {
+    "n": 4,
+    "correct": 4
   }
 }

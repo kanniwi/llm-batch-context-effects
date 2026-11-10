@@ -9,18 +9,18 @@
 | h1c           | H5 (+H1)        | 300 целевых × 2 уровня × 9 позиций = 5 400 батчей (позиция скрещена с составом)     |
 | repeats       | шум модели      | 300 батчей основного набора и 300 одиночных, sample = 0, 1, 2 при рабочей T         |
 | uncertainty   | H2 (спорность)  | 300 одиночных × 10 ответов при T = 1: доля TOXIC = неуверенность модели             |
-| h3            | H3 (черновик)   | 5 условий подачи × 3 состава соседей × 300 целевых                                 |
+| h3            | H3             | 300 целевых × 6 условий × 2 позиции = 3 600 батчей                                 |
 """
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from functools import cached_property
 
 import pandas as pd
 
 from . import config as C
 from . import data, plans
-from .prompts import H3_CONDITIONS, SYSTEM, build_h3_prompt, build_user_prompt
+from .prompts import SYSTEM, SYSTEM_H3, build_h3_prompt, build_user_prompt
 
 
 @dataclass
@@ -58,6 +58,10 @@ class Context:
         return plans.build_h1c_plan(self.targets, self.neighbors)
 
     @cached_property
+    def h3_plan(self) -> pd.DataFrame:
+        return plans.build_h3_plan(self.h1c_plan)
+
+    @cached_property
     def repeat_plan(self) -> pd.DataFrame:
         return plans.repeat_subset(self.h1_plan)
 
@@ -70,15 +74,15 @@ def _single_jobs(ctx: Context, ids, samples, temperature, exp):
 
 
 def _batch_jobs(ctx: Context, plan, samples, temperature, exp):
-    cols = [c for c in ("prop_toxic", "n_toxic", "rep", "length_tol", "composition", "condition") if c in plan.columns]
+    cols = [c for c in ("prop_toxic", "n_toxic", "rep", "length_tol", "composition", "condition", "supplied_label") if c in plan.columns]
     jobs = []
     for s in samples:
         for r in plan.itertuples():
             ids = list(r.item_ids)
             texts = [ctx.text[i] for i in ids]
-            if getattr(r, "condition", None) is not None and "condition" in plan.columns:
-                system, user = build_h3_prompt(r.condition, texts, [int(ctx.gold[i]) for i in ids], int(r.target_pos))
-                mt = C.MAX_TOKENS_BATCH if r.condition == "standard" else 32
+            if exp == "h3":
+                supplied = None if pd.isna(r.supplied_label) else int(r.supplied_label)
+                system, user, mt = SYSTEM_H3, build_h3_prompt(texts, r.target_pos, supplied), C.MAX_TOKENS_SINGLE
             else:
                 system, user, mt = ctx.system, build_user_prompt(texts), C.MAX_TOKENS_BATCH
             j = dict(exp=exp, kind="batch", id=r.batch_id, target_id=int(r.target_id), system=system, user=user,
@@ -112,10 +116,7 @@ class Experiment:
         if n == "uncertainty":
             return _single_jobs(ctx, tids, samples, C.T_UNCERTAINTY, n)
         if n == "h3":
-            if ctx.neutral is None:
-                raise RuntimeError("Нет data/processed/neutral_pool.parquet: выполните `python -m ctxbias data`")
-            plan = plans.build_h3_plan(ctx.targets, ctx.neighbors, ctx.neutral, H3_CONDITIONS)
-            return _batch_jobs(ctx, plan, samples, T, n)
+            return _batch_jobs(ctx, ctx.h3_plan, samples, T, n)
         raise KeyError(n)
 
 
@@ -124,5 +125,5 @@ EXPERIMENTS: dict[str, Experiment] = {e.name: e for e in [
     Experiment("h1c", "H5, H1", (C.SAMPLE_BASE,), "Позиция целевого, скрещённая с составом соседей"),
     Experiment("repeats", "шум модели", (C.SAMPLE_BASE,) + C.SAMPLES_REPEAT, "Самосогласованность при рабочей T"),
     Experiment("uncertainty", "H2", C.SAMPLES_UNCERTAINTY, "10 ответов при T=1: неуверенность модели"),
-    Experiment("h3", "H3", (C.SAMPLE_BASE,), "Условия подачи × состав соседей (черновик)"),
+    Experiment("h3", "H3", (C.SAMPLE_BASE,), "Предъявленные метки × содержание соседей"),
 ]}

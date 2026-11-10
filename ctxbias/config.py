@@ -47,6 +47,10 @@ H1C_LEVELS = (0, 8)
 H1C_POSITIONS = tuple(range(1, 10))
 H1C_N_CLEAR_PER_CLASS = 25
 H1C_N_AMBIG = 50
+H3_POSITIONS = (1, 9)
+H3_SEED = 21
+H3_CONDITIONS = {"A": (0, 0), "B": (0, 1), "C": (8, 0), "D": (8, 1),
+                 "E": (0, None), "F": (8, None)}
 REPEAT_SUBSET_SEED = 3
 REPEAT_SUBSET_SIZE = 300                 # батчей основного набора для проверки самосогласованности
 

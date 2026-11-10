@@ -1,0 +1,5 @@
+sample,condition,expected_label,y,correct,error
+0,D,1.0,1.0,True,
+0,B,1.0,1.0,True,
+0,A,0.0,0.0,True,
+0,C,0.0,0.0,True,

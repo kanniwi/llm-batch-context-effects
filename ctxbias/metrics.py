@@ -1,7 +1,7 @@
 """Метрики и статистические тесты. Все функции принимают «тидовую» таблицу результатов (см. runner._tidy).
 
 Принципы (см. docs/methods.md):
-  * эффект считается ВНУТРИ целевого комментария (разность долей TOXIC при разном составе соседей);
+  * эффект считается внутри целевого комментария (разность долей TOXIC при разном составе соседей);
   * доверительные интервалы — бутстреп по целевым (а не по запросам: повторы одного целевого зависимы);
   * вывод делается по тому, содержит ли интервал 0, а не по попаданию оценки в «собственный» интервал;
   * анализы, не заданные заранее, помечаются exploratory=True.
@@ -376,3 +376,56 @@ def classification_by_level_stratum(df: pd.DataFrame) -> pd.DataFrame:
                 r.update({k: v for k, v in confusion_metrics(g["y"], g["gold"]).items() if k != "n"})
                 rows.append(r)
     return pd.DataFrame(rows)
+
+
+def h3_effects(df: pd.DataFrame) -> pd.DataFrame:
+    """Парные эффекты H3 на общей выборке целевых с 8 валидными ответами A–D."""
+    b = df[(df["kind"] == "batch") & (df["sample"] == C.SAMPLE_BASE)]
+    cols = pd.MultiIndex.from_product([C.H3_POSITIONS, list(C.H3_CONDITIONS)])
+    y = b.assign(y=b["y"].where(b["ok"])).pivot(index="target_id", columns=["target_pos", "condition"], values="y")
+    y = y.reindex(columns=cols)
+    primary = [(pos, c) for pos in C.H3_POSITIONS for c in "ABCD"]
+    complete = y.dropna(subset=primary)
+    rows = []
+    for scope, positions in [("all", C.H3_POSITIONS), *((f"pos{p}", (p,)) for p in C.H3_POSITIONS)]:
+        values = {c: complete.loc[:, [(p, c) for p in positions]].mean(axis=1, skipna=False) for c in "ABCD"}
+        a, b, c, d = (values[k] for k in "ABCD")
+        contrasts = pd.DataFrame({
+            "labels_on_nontoxic": b - a,
+            "labels_on_toxic": d - c,
+            "texts_with_nontoxic_labels": c - a,
+            "texts_with_toxic_labels": d - b,
+            "interaction": (d - c) - (b - a),
+            "labels": ((b - a) + (d - c)) / 2,
+            "texts": ((c - a) + (d - b)) / 2,
+        })
+        if len(complete):
+            rng = np.random.default_rng(RNG_SEED)
+            index = rng.integers(0, len(complete), (N_BOOT, len(complete)))
+            means = contrasts.mean()
+            boot = pd.DataFrame(contrasts.to_numpy()[index].mean(axis=1), columns=contrasts.columns)
+            means["abs_labels_minus_abs_texts"] = abs(means["labels"]) - abs(means["texts"])
+            boot["abs_labels_minus_abs_texts"] = boot["labels"].abs() - boot["texts"].abs()
+            for name, effect in means.items():
+                lo, hi = boot[name].quantile([0.025, 0.975])
+                rows.append(dict(scope=scope, contrast=name, n_targets=len(complete), n_observed_targets=len(y),
+                                 effect_pp=100 * effect, ci_low=100 * lo, ci_high=100 * hi))
+        else:
+            for name in [*contrasts.columns, "abs_labels_minus_abs_texts"]:
+                rows.append(dict(scope=scope, contrast=name, n_targets=0, n_observed_targets=len(y),
+                                 effect_pp=None, ci_low=None, ci_high=None))
+        control = y.loc[:, [(p, "F") for p in positions]].to_numpy() - y.loc[:, [(p, "E") for p in positions]].to_numpy()
+        valid = control[~np.isnan(control).any(axis=1)]
+        effect, lo, hi = bootstrap_ci(valid.mean(axis=1)) if len(valid) else (None, None, None)
+        rows.append(dict(scope=scope, contrast="texts_without_labels", n_targets=len(valid),
+                         n_observed_targets=len(y), effect_pp=None if effect is None else 100 * effect,
+                         ci_low=None if lo is None else 100 * lo, ci_high=None if hi is None else 100 * hi))
+    return pd.DataFrame(rows)
+
+
+def h3_diagnostics(df: pd.DataFrame) -> pd.DataFrame:
+    batches = df[df["kind"] == "batch"].assign(api_error=df["error"].notna())
+    return (batches.groupby(["sample", "target_pos", "condition"], as_index=False)
+            .agg(n=("id", "size"), valid=("ok", "sum"), api_errors=("api_error", "sum"),
+                 toxic_share=("y", "mean"))
+            .assign(missing_rate=lambda d: 1 - d["valid"] / d["n"]))

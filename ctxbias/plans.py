@@ -129,32 +129,15 @@ def repeat_subset(h1_plan: pd.DataFrame) -> pd.DataFrame:
 
 
 # ---------------------------------------------------------------------------------------------
-# H3 (черновик: определения условий и «нейтральных» соседей согласовать с преподавателем)
+# H3: состав соседей × предъявленные метки
 # ---------------------------------------------------------------------------------------------
-H3_COMPOSITIONS = ("toxic0", "neutral", "toxic100")
-H3_TARGET_POS = 5
-
-
-def build_h3_plan(targets: pd.DataFrame, neighbors: pd.DataFrame, neutral: pd.DataFrame,
-                  conditions: tuple[str, ...], seed: int = 21) -> pd.DataFrame:
-    """Для каждого целевого и состава соседей (0 % токсичных / нейтральные / 100 % токсичных) набор и порядок соседей
-    фиксируются ОДИН раз и используются во всех условиях подачи: условия различаются только промптом."""
-    rng = np.random.default_rng(seed)
-    pools = {"tox": neighbors[neighbors["label"] == 1], "non": neighbors[neighbors["label"] == 0], "neu": neutral}
-    rows, skipped = [], []
-    for _, t in targets.iterrows():
-        cands, tol = _candidates(pools, t)
-        if cands is None:
-            skipped.append(f"{t['id']} ({t['n_tokens']} ток.)")
-            continue
-        for comp, pool in zip(H3_COMPOSITIONS, ("non", "neu", "tox")):
-            neigh = [int(x) for x in rng.choice(cands[pool]["id"].to_numpy(), K, replace=False)]
-            pos = H3_TARGET_POS
-            items = neigh[:pos - 1] + [int(t["id"])] + neigh[pos - 1:]
-            for cond in conditions:
-                rows.append(dict(batch_id=f"h3_{t['id']}_{comp}_{cond}", target_id=int(t["id"]), composition=comp,
-                                 condition=cond, n_toxic={"toxic0": 0, "neutral": 0, "toxic100": 8}[comp],
-                                 prop_toxic={"toxic0": 0.0, "neutral": 0.0, "toxic100": 1.0}[comp], rep=0,
-                                 target_pos=pos, item_ids=items, length_tol=tol))
-    _warn_skipped(skipped)
-    return pd.DataFrame(rows)
+def build_h3_plan(h1c_plan: pd.DataFrame) -> pd.DataFrame:
+    """Берёт крайние позиции H1c и сохраняет исходный порядок обоих наборов соседей."""
+    base = h1c_plan[h1c_plan["target_pos"].isin(C.H3_POSITIONS)]
+    rows = []
+    for r in base.to_dict("records"):
+        for condition, (n_toxic, supplied_label) in C.H3_CONDITIONS.items():
+            if r["n_toxic"] == n_toxic:
+                rows.append(dict(r, batch_id=f"h3_{r['target_id']}_p{r['target_pos']}_{condition}",
+                                 condition=condition, supplied_label=supplied_label))
+    return pd.DataFrame(rows).sample(frac=1, random_state=C.H3_SEED).reset_index(drop=True)

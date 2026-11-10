@@ -74,6 +74,14 @@ def build(model_key: str, ctx: Context | None = None) -> dict:
         if rep is not None:
             S["temperature_check"] = M.temperature_check(rep[rep["sample"] == C.SAMPLE_BASE], unc)
 
+    h3 = _load("h3", model_key, ctx)
+    if h3 is not None:
+        save(M.h3_diagnostics(h3), "h3_diagnostics")
+        effects = M.h3_effects(h3)
+        save(effects, "h3_effects")
+        main = effects[(effects["scope"] == "all") & (effects["contrast"] == "abs_labels_minus_abs_texts")]
+        S["h3_primary"] = main.astype(object).where(main.notna(), None).iloc[0].to_dict()
+
     (C.TABLE_DIR / f"summary_{model_key}.json").write_text(json.dumps(S, ensure_ascii=False, indent=2, default=float), encoding="utf-8")
     return S
 

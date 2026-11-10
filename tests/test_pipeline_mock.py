@@ -37,3 +37,27 @@ def test_end_to_end(synthetic, monkeypatch):
     runner.run("h1c", "mock", ctx=ctx)
     S = report.build("mock", ctx)
     assert "h1_effect" in S and "noise_batch" in S and S["noise_batch"]["share_changed"] == 0.0
+
+
+def test_h3_and_report(synthetic, monkeypatch):
+    from ctxbias import plans
+    monkeypatch.setattr(plans, "sample_h1c_targets", lambda targets: targets.iloc[:6])
+    ctx = _ctx(synthetic)
+    plan = ctx.h3_plan
+    assert len(plan) == 12 * len(ctx.targets)
+    for _, group in plan.groupby(["target_id", "target_pos", "n_toxic"]):
+        assert len(group) == 3 and len({tuple(ids) for ids in group.item_ids}) == 1
+
+    full = runner.run("h3", "mock", ctx=ctx)
+    assert full["parse_ok"].all()
+    assert runner.count_requests("h3", "mock", ctx)["remaining"] == 0
+    assert report.build("mock", ctx)["h3_primary"]["n_targets"] == len(ctx.targets)
+
+    # Искусственный пример: метки меняют ответ у всех, тексты не меняют.
+    full["y"] = full["condition"].map(dict(A=0, B=1, C=0, D=1, E=0, F=0))
+    full["ok"] = True
+    full.loc[full.index[full["condition"] == "A"][0], "ok"] = False
+    effects = M.h3_effects(full)
+    main = effects.query("scope == 'all' and contrast == 'abs_labels_minus_abs_texts'").iloc[0]
+    assert main.n_targets == len(ctx.targets) - 1
+    assert (main.effect_pp, main.ci_low, main.ci_high) == (100, 100, 100)

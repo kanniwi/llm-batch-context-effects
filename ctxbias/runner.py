@@ -13,7 +13,7 @@ from . import __version__
 from . import config as C
 from .experiments import EXPERIMENTS, Context
 from .llm import ask_many, daily_limit_hit, is_cached
-from .prompts import parse_labels, p_toxic_from_logprobs
+from .prompts import parse_h3_label, parse_labels, p_toxic_from_logprobs
 
 
 def _git_commit() -> str | None:
@@ -25,10 +25,16 @@ def _git_commit() -> str | None:
         return None
 
 
-def count_requests(exp_name: str, model_key: str, ctx: Context, samples=None) -> dict:
+def count_requests(exp_name: str, model_key: str, ctx: Context, samples=None, *, pending: set | None = None) -> dict:
     """Сколько запросов в эксперименте и сколько из них уже в кэше (то есть бесплатно)."""
     jobs = EXPERIMENTS[exp_name].jobs(ctx, samples)
-    cached = sum(is_cached(model_key, j["system"], j["user"], j["temperature"], j["max_tokens"], j["sample"]) for j in jobs)
+    cached = 0
+    for j in jobs:
+        request = (model_key, j["system"], j["user"], j["temperature"], j["max_tokens"], j["sample"])
+        if is_cached(*request):
+            cached += 1
+        elif pending is not None:
+            pending.add(request)
     return dict(experiment=exp_name, total=len(jobs), cached=cached, remaining=len(jobs) - cached)
 
 
@@ -37,9 +43,14 @@ def _tidy(job: dict, resp: dict, model_key: str) -> dict:
     labels, ok = parse_labels(resp["text"], n)
     probs = p_toxic_from_logprobs(resp["tokens"], n) if resp.get("tokens") else [None] * n
     pos = job["target_pos"]
+    if job["exp"] == "h3":
+        y = None if resp.get("error") or resp.get("finish_reason") in ("length", "max_tokens") else parse_h3_label(resp["text"], pos)
+        labels = [None] * n
+        labels[pos - 1] = y
+        ok = y is not None
     usage = resp.get("usage") or {}
     row = {k: job[k] for k in ("exp", "kind", "id", "target_id", "sample", "temperature", "target_pos", "n_items", "item_ids")}
-    for k in ("prop_toxic", "n_toxic", "rep", "length_tol", "composition", "condition"):
+    for k in ("prop_toxic", "n_toxic", "rep", "length_tol", "composition", "condition", "supplied_label"):
         row[k] = job.get(k)
     row.update(model_key=model_key, y=labels[pos - 1], p=probs[pos - 1], labels=labels, parse_ok=ok,
                finish_reason=resp.get("finish_reason"), error=resp.get("error"), in_tokens=usage.get("input"),
